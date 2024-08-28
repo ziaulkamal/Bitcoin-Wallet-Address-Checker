@@ -31,16 +31,39 @@ def load_existing_results():
             return []
     return []
 
+# Function to ensure that the phrase is formatted correctly
+def format_suggested_phrase(phrase, total_words):
+    words = phrase.split()
+    num_words = len(words)
+    if num_words > total_words:
+        raise ValueError("The suggested phrase is too long. It should be shorter than the total number of words.")
+    elif num_words < total_words:
+        # Add additional random words to complete the phrase
+        mnemo = Mnemonic()
+        additional_words = mnemo.generate(strength=(total_words - num_words) * 32).split()
+        words.extend(additional_words[:total_words - num_words])
+    return ' '.join(words)
+
 # Function to generate and save mnemonics and addresses to JSON
-def generate_and_save_mnemonics(count):
+def generate_and_save_mnemonics(count, suggested_phrase=None):
     mnemo = Mnemonic()
     results = load_existing_results()
     
     # Ensure output directory exists
     os.makedirs('output', exist_ok=True)
     
-    for _ in range(count):
-        phrase = mnemo.generate()
+    while len(results) < count:
+        if suggested_phrase:
+            try:
+                phrase = format_suggested_phrase(suggested_phrase, 12)  # Assuming 12 words for a standard mnemonic
+            except ValueError as e:
+                print(f"Error with suggested phrase: {e}")
+                print("Generating a new phrase without suggestion...")
+                suggested_phrase = None
+                phrase = mnemo.generate()
+        else:
+            phrase = mnemo.generate()
+        
         address = get_address_from_mnemonic(phrase)
         
         if address:
@@ -53,6 +76,8 @@ def generate_and_save_mnemonics(count):
             # Save results to JSON file in real-time
             with open(output_file, 'w') as file:
                 json.dump(results, file, indent=4)
+        else:
+            print(f"Failed to generate a valid address for phrase '{phrase}'. Generating a new phrase...")
     
     print(f"Results saved to {output_file}")
 
@@ -63,7 +88,12 @@ def main():
         if count <= 0:
             raise ValueError("The number of mnemonics must be a positive integer.")
         
-        generate_and_save_mnemonics(count)
+        use_suggestion = input("Do you want to use a suggested phrase? (yes/no): ").strip().lower() == 'yes'
+        suggested_phrase = None
+        if use_suggestion:
+            suggested_phrase = input("Enter the suggested phrase: ").strip()
+        
+        generate_and_save_mnemonics(count, suggested_phrase)
     
     except ValueError as e:
         print(f"Invalid input: {e}")
