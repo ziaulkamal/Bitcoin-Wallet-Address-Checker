@@ -176,16 +176,22 @@ def process_feature_3():
     with open(source_file, 'r') as file:
         phrases = [line.strip() for line in file if line.strip()]
 
+    results_filename = f"{address_type}_source_results.json"
+    results_path = os.path.join(ensure_output_dir_exists(3), results_filename)
     results = []
+
+    # Save initial empty results file
+    save_results(results, results_path)
+    
     for phrase in phrases:
         result = process_phrase_non_check(phrase, address_type)
         if result:
             results.append(result)
+            # Save results after each phrase
+            save_results(results, results_path)
             print(f"Processed phrase: {phrase}")
 
-    results_filename = f"{address_type}_source_results.json"
-    save_results(results, os.path.join(ensure_output_dir_exists(3), results_filename))
-    print(f"Results saved to {os.path.join(ensure_output_dir_exists(3), results_filename)}")
+    print(f"Results saved to {results_path}")
 
 # Main function for feature 4
 def process_feature_4():
@@ -221,17 +227,23 @@ def process_feature_4():
             phrase = input(f"Enter suggested phrase {_ + 1}: ").strip()
             suggested_phrases.append(phrase)
 
+    results_filename = f"{address_type}_generated_phrases.json"
+    results_path = os.path.join(ensure_output_dir_exists(4), results_filename)
     results = []
+
+    # Save initial empty results file
+    save_results(results, results_path)
+    
     for _ in range(count):
         mnemonic = generate_mnemonic_from_file(suggested_phrases)
         result = process_phrase_non_check(mnemonic, address_type)
         if result:
             results.append(result)
+            # Save results after each phrase
+            save_results(results, results_path)
             print(f"Generated mnemonic: {mnemonic}")
     
-    output_file = os.path.join(ensure_output_dir_exists(4), f"{address_type}_generated_phrases.json")
-    save_results(results, output_file)
-    print(f"Results saved to {output_file}")
+    print(f"Results saved to {results_path}")
 
 # Main function
 def main():
