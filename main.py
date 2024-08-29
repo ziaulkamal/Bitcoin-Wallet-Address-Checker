@@ -1,8 +1,10 @@
 import os
 import json
 import random
+import time
 from bip_utils import Bip39SeedGenerator, Bip44Changes, Bip84, Bip84Coins
 from bip_utils.utils.mnemonic import MnemonicChecksumError
+from blockchain import fetch_address_details
 
 # File locations
 source_file = 'source.txt'
@@ -15,6 +17,14 @@ def ensure_output_dir_exists(feature_number):
     if not os.path.exists(directory):
         os.makedirs(directory)
     return directory
+
+# Ensure output directories for blockchain results
+def ensure_blockchain_output_dirs():
+    blockchain_dir = os.path.join(base_output_dir, 'blockchain')
+    if not os.path.exists(blockchain_dir):
+        os.makedirs(blockchain_dir)
+    if not os.path.exists(os.path.join(blockchain_dir, 'result')):
+        os.makedirs(os.path.join(blockchain_dir, 'result'))
 
 # Function to generate BIP84 (Bech32) address
 def generate_bip84_address(phrase):
@@ -73,15 +83,65 @@ def process_phrase_non_check(phrase):
     return wallet_info
 
 # Function to save results to JSON file in real-time
-def save_results(results, output_dir):
-    output_file = os.path.join(output_dir, 'results.json')
-    with open(output_file, 'w') as json_file:
-        json.dump(results, json_file, indent=4)
+def save_results(results, output_file):
+    with open(output_file, 'w') as file:
+        json.dump(results, file, indent=4)
+
+# Function to load JSON data from file
+def load_json_data(filename):
+    with open(filename, 'r') as file:
+        return json.load(file)
+
+# Main function for feature 2
+def process_feature_2(json_filename):
+    ensure_blockchain_output_dirs()
+
+    # Load the data from the specified JSON file
+    data = load_json_data(json_filename)
+    
+    # Lists to hold valid and zero balance results
+    valid_results = []
+    zero_results = []
+
+    for item in data:
+        address = item.get('address')
+        phrase = item.get('phrase')
+        
+        # Print address being processed
+        print(f"Processing address: {address}")
+
+        try:
+            # Fetch address details
+            result = fetch_address_details(address)
+            balance = result['balance']
+            
+            # Add phrase to the result
+            result['phrase'] = phrase
+            
+            if balance == '0.00000000' or balance == 'N/A':
+                zero_results.append(result)
+                # Save zero balance result separately
+                zero_filename = os.path.join(base_output_dir, 'blockchain', 'result', 'zero.json')
+                save_results(zero_results, zero_filename)
+                print(f"Failed: Balance for address {address} is zero or N/A.")
+            else:
+                valid_results.append(result)
+                # Save valid balance result with address as filename
+                address_filename = os.path.join(base_output_dir, 'blockchain', f'{address}.json')
+                save_results(result, address_filename)
+                print(f"Success: Balance for address {address} is {balance}.")
+        except Exception as e:
+            print(f"Error processing address {address}: {e}")
+
+        # Wait before processing the next address
+        time.sleep(random.uniform(2, 3))
+    
+    print(f"Results saved to {base_output_dir}/blockchain/{address}.json and {base_output_dir}/blockchain/result/zero.json")
 
 # Menu for choosing between different options
 print("Select an option:")
 print("1: Use phrases from source.txt with balance check")
-print("2: Generate random mnemonic phrases with balance check")
+print("2: Check BTC Balance Blockchain from source result")
 print("3: Use phrases from source.txt (non check)")
 print("4: Generate BIP39 phrases from english.txt and BIP84 addresses (non check)")
 
@@ -98,7 +158,12 @@ if option == '1':
 elif option == '2':
     # Create directory for feature 2
     output_dir = ensure_output_dir_exists(2)
-    print("Balance check functionality with random mnemonics is not implemented in this example.")
+    json_filename = input("Enter the JSON filename from output/{feature} directory: ").strip()
+    full_json_path = os.path.join('output', json_filename)
+    if os.path.exists(full_json_path):
+        process_feature_2(full_json_path)
+    else:
+        print(f"File {full_json_path} does not exist.")
 elif option == '3':
     # Create directory for feature 3
     output_dir = ensure_output_dir_exists(3)
@@ -111,7 +176,7 @@ elif option == '3':
             result = process_phrase_non_check(phrase)
             results.append(result)
 
-        save_results(results, output_dir)
+        save_results(results, os.path.join(output_dir, 'results.json'))
         print(f"BIP84 addresses have been generated and saved in {output_dir}/results.json.")
     else:
         print(f"File {source_file} not found.")
@@ -142,7 +207,7 @@ elif option == '4':
             print(f"Generated phrase {len(results)}: {mnemonic_phrase}")
 
             # Save results in real-time
-            save_results(results, output_dir)
+            save_results(results, os.path.join(output_dir, 'results.json'))
             print(f"Results saved to {output_dir}/results.json")
 
         print(f"{count} BIP39 phrases and BIP84 addresses have been generated and saved in {output_dir}/results.json.")
