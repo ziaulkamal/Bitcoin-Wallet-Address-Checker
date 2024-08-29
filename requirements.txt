@@ -1,2 +1,5 @@
 bip-utils
 mnemonic
+ecdsa
+requests
+bitcoinlib

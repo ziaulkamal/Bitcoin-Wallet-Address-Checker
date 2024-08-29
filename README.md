@@ -14,5 +14,12 @@ You can install the required libraries using:
 pip install -r requirements.txt
 ```
 
+## Using ENV
+```bash
+deactivate
+rm -rf myenv
+python3 -m venv myenv
+source myenv/bin/activate
+```
 ## Using
  TRY....
