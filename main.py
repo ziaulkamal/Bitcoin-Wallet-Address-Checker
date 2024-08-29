@@ -235,26 +235,31 @@ def process_feature_4():
 
 # Main function
 def main():
-    print("Select an option:")
-    print("1: Use phrases from source.txt with balance check")
-    print("2: Check BTC Balance Blockchain from source result")
-    print("3: Use phrases from source.txt (non check)")
-    print("4: Generate BIP39 phrases and addresses (non check)")
+    while True:
+        print("\nSelect an option:")
+        print("1: Use phrases from source.txt with balance check")
+        print("2: Check BTC Balance Blockchain from source result")
+        print("3: Use phrases from source.txt (non check)")
+        print("4: Generate BIP39 phrases and addresses (non check)")
+        print("5: Exit")
 
-    choice = input("Enter choice (1/2/3/4): ").strip()
+        choice = input("Enter choice (1/2/3/4/5): ").strip()
 
-    if choice == '1':
-        # Implement feature 1 here if needed
-        pass
-    elif choice == '2':
-        json_filename = input("Enter the JSON filename from output/ directory: ").strip()
-        process_feature_2(os.path.join(base_output_dir, json_filename))
-    elif choice == '3':
-        process_feature_3()
-    elif choice == '4':
-        process_feature_4()
-    else:
-        print("Invalid choice.")
+        if choice == '1':
+            # Implement feature 1 here if needed
+            pass
+        elif choice == '2':
+            json_filename = input("Enter the JSON filename from output/ directory: ").strip()
+            process_feature_2(os.path.join(base_output_dir, json_filename))
+        elif choice == '3':
+            process_feature_3()
+        elif choice == '4':
+            process_feature_4()
+        elif choice == '5':
+            print("Exiting the program.")
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     main()
