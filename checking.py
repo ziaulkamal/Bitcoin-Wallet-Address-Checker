@@ -28,9 +28,12 @@ def get_balance(address):
         return None
 
 def get_next_unused_address():
-    response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', ascending=True).limit(1).execute()
-    if response.data:
-        return response.data[0]
+    try:
+        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', desc=True).limit(1).execute()
+        if response.data:
+            return response.data[0]
+    except Exception as e:
+        print(f"Error saat mengambil alamat yang tidak digunakan: {e}")
     return None
 
 def save_found_address(address, xprv, xpub, balance):
