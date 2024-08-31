@@ -13,23 +13,30 @@ key = os.getenv('SUPABASE_KEY')  # Pastikan variabel lingkungan ini diset
 # Create Supabase client
 supabase: Client = create_client(url, key)
 
-# URL API untuk memeriksa saldo dari blockchain.info (atau gunakan API lain yang sesuai)
-API_URL = 'https://blockchain.info/q/addressbalance/'
+# URL API untuk memeriksa saldo dari mempool.space
+API_URL = 'https://mempool.space/api/address/'
 
-def get_balance(address):
+def fetch_address_details(address):
+    url = f"{API_URL}{address}"
     try:
-        response = requests.get(f'{API_URL}{address}')
+        response = requests.get(url)
         response.raise_for_status()  # Akan memicu pengecualian untuk status code yang tidak berhasil
-        balance_satoshis = int(response.text)  # Saldo dalam satoshi
-        balance_btc = balance_satoshis / 1e8  # Konversi dari satoshi ke BTC
-        return balance_btc
-    except requests.RequestException as e:
-        print(f"Error saat memeriksa saldo: {e}")
-        return None
+        data = response.json()
+        funded_txo_sum = data['chain_stats']['funded_txo_sum']
+        return {
+            'address': address,
+            'balance': funded_txo_sum / 1e8  # Konversi dari satoshi ke BTC
+        }
+    except Exception as e:
+        print(f"Error fetching details for address {address}: {e}")
+        return {
+            'address': address,
+            'balance': 'Error'
+        }
 
 def get_next_unused_address():
     try:
-        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', desc=True).limit(1).execute()
+        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', ascending=True).limit(1).execute()
         if response.data:
             return response.data[0]
     except Exception as e:
@@ -74,8 +81,9 @@ def main():
         xpub = entry['xpub']
 
         print(f"Memeriksa saldo untuk alamat {address}...")
-        balance = get_balance(address)
-        if balance is not None and balance > 0:
+        details = fetch_address_details(address)
+        balance = details['balance']
+        if balance != 'Error' and balance > 0:
             print(f"Saldo untuk alamat {address} adalah {balance:.8f} BTC")
             save_found_address(address, xprv, xpub, balance)
             mark_address_as_used(address)
