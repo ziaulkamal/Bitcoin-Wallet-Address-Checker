@@ -36,7 +36,7 @@ def fetch_address_details(address):
 
 def get_next_unused_address():
     try:
-        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', ascending=True).limit(1).execute()
+        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', 'asc').limit(1).execute()
         if response.data:
             return response.data[0]
     except Exception as e:
