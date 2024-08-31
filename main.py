@@ -1,30 +1,12 @@
 import os
-import json
 import random
-import time
 from bip_utils import Bip39SeedGenerator, Bip44, Bip49, Bip84, Bip44Coins, Bip49Coins, Bip84Coins, Bip44Changes
 from bip_utils.utils.mnemonic import MnemonicChecksumError
-from blockchain import fetch_address_details
+from supabase_utils import save_to_supabase
 
 # File locations
 source_file = 'source.txt'
-english_word_file = 'english.txt'  # File untuk kata-kata BIP39
-base_output_dir = 'output/'
-
-# Function to ensure the output directory exists
-def ensure_output_dir_exists(feature_number):
-    directory = os.path.join(base_output_dir, str(feature_number))
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    return directory
-
-# Ensure output directories for blockchain results
-def ensure_blockchain_output_dirs():
-    blockchain_dir = os.path.join(base_output_dir, 'blockchain')
-    if not os.path.exists(blockchain_dir):
-        os.makedirs(blockchain_dir)
-    if not os.path.exists(os.path.join(blockchain_dir, 'result')):
-        os.makedirs(os.path.join(blockchain_dir, 'result'))
+english_word_file = 'english.txt'  # Ensure this is defined
 
 # Function to generate BIP44 BTC address
 def generate_bip44_btc_address(phrase):
@@ -72,19 +54,19 @@ def generate_mnemonic_from_file(suggested_phrases):
             Bip39SeedGenerator(phrase).Generate()
             return phrase
         except MnemonicChecksumError:
-            print(f"Checksum invalid for phrase: '{phrase}'. Retrying...")
+            print(f"Checksum invalid. Retrying...")
 
-# Function to process each mnemonic phrase without checking the balance
-def process_phrase_non_check(phrase, address_type):
+# Function to process each mnemonic phrase and save to Supabase
+def process_phrase_and_save(phrase, address_type, feature):
     phrase = phrase.strip()
     if not phrase:
         print("Empty phrase detected, skipping...")
-        return None
+        return
     
     words_count = len(phrase.split())
     if words_count != 12:
-        print(f"Invalid mnemonic phrase (should be 12 words): '{phrase}'. Skipping...")
-        return None
+        print(f"Invalid mnemonic phrase (should be 12 words): . Skipping...")
+        return
 
     try:
         if address_type == 'BIP44':
@@ -95,59 +77,33 @@ def process_phrase_non_check(phrase, address_type):
             address = generate_bip84_btc_address(phrase)
         else:
             print("Unknown address type.")
-            return None
+            return
         
-        return {
+        data = {
+            "type": address_type,
             "phrase": phrase,
-            "address": address
+            "address": address,
+            "feature": feature,
+            "use": False
         }
-    except MnemonicChecksumError:
-        print(f"Invalid mnemonic phrase (checksum error): '{phrase}'. Skipping...")
-        return None
-
-# Function to save results to JSON file in real-time
-def save_results(results, output_file):
-    with open(output_file, 'w') as file:
-        json.dump(results, file, indent=4)
-
-# Function to load JSON data from file
-def load_json_data(filename):
-    with open(filename, 'r') as file:
-        return json.load(file)
-
-# Main function for feature 2
-def process_feature_2(json_filename):
-    ensure_blockchain_output_dirs()
-    data = load_json_data(json_filename)
-    valid_results = []
-    zero_results = []
-
-    for item in data:
-        address = item.get('address')
-        phrase = item.get('phrase')
-        print(f"Processing address: {address}")
-
-        try:
-            result = fetch_address_details(address)
-            balance = result['balance']
-            result['phrase'] = phrase
-            
-            if balance == 0 or balance == 'Error':
-                zero_results.append(result)
-                zero_filename = os.path.join(base_output_dir, 'blockchain', 'result', 'zero.json')
-                save_results(zero_results, zero_filename)
-                print(f"Failed: Balance for address {address} is zero or Error.")
-            else:
-                valid_results.append(result)
-                address_filename = os.path.join(base_output_dir, 'blockchain', f'{address}.json')
-                save_results(result, address_filename)
-                print(f"Success: Balance for address {address} is {balance}.")
-        except Exception as e:
-            print(f"Error processing address {address}: {e}")
-
-        time.sleep(random.uniform(2, 3))
+        save_to_supabase(data)  # Ensure this function is correctly defined in supabase_utils.py
+        print(f"Saved : {address}")
     
-    print(f"Results saved to {base_output_dir}/blockchain/{address}.json and {base_output_dir}/blockchain/result/zero.json")
+    except MnemonicChecksumError:
+        print(f"Skip Invalid mnemonic phrase (checksum error)")
+
+# Main function for feature 1
+def process_feature_1():
+    if not os.path.exists(source_file):
+        print(f"{source_file} not found.")
+        return
+
+    with open(source_file, 'r') as file:
+        phrases = [line.strip() for line in file if line.strip()]
+
+    for phrase in phrases:
+        process_phrase_and_save(phrase, 'BIP44', '1')  # Assuming '1' is for feature 1
+        print(f"Processed phrase: .........")
 
 # Main function for feature 3
 def process_feature_3():
@@ -176,26 +132,12 @@ def process_feature_3():
     with open(source_file, 'r') as file:
         phrases = [line.strip() for line in file if line.strip()]
 
-    results_filename = f"{address_type}_source_results.json"
-    results_path = os.path.join(ensure_output_dir_exists(3), results_filename)
-    results = []
-
-    # Save initial empty results file
-    save_results(results, results_path)
-    
     for phrase in phrases:
-        result = process_phrase_non_check(phrase, address_type)
-        if result:
-            results.append(result)
-            # Save results after each phrase
-            save_results(results, results_path)
-            print(f"Processed phrase: {phrase}")
-
-    print(f"Results saved to {results_path}")
+        process_phrase_and_save(phrase, address_type, '3')
+        print(f"Processed phrase: .........")
 
 # Main function for feature 4
 def process_feature_4():
-    ensure_output_dir_exists(4)
     print("Select address type:")
     print("1: BIP44 BTC Address")
     print("2: BIP49 BTC Address")
@@ -227,23 +169,10 @@ def process_feature_4():
             phrase = input(f"Enter suggested phrase {_ + 1}: ").strip()
             suggested_phrases.append(phrase)
 
-    results_filename = f"{address_type}_generated_phrases.json"
-    results_path = os.path.join(ensure_output_dir_exists(4), results_filename)
-    results = []
-
-    # Save initial empty results file
-    save_results(results, results_path)
-    
     for _ in range(count):
         mnemonic = generate_mnemonic_from_file(suggested_phrases)
-        result = process_phrase_non_check(mnemonic, address_type)
-        if result:
-            results.append(result)
-            # Save results after each phrase
-            save_results(results, results_path)
-            print(f"Generated mnemonic: {mnemonic}")
-    
-    print(f"Results saved to {results_path}")
+        process_phrase_and_save(mnemonic, address_type, '4')
+        print(f"Generated mnemonic: ........")
 
 # Main function
 def main():
@@ -258,11 +187,9 @@ def main():
         choice = input("Enter choice (1/2/3/4/5): ").strip()
 
         if choice == '1':
-            # Implement feature 1 here if needed
-            pass
+            process_feature_1()
         elif choice == '2':
-            json_filename = input("Enter the JSON filename from output/ directory: ").strip()
-            process_feature_2(os.path.join(base_output_dir, json_filename))
+            print("Feature 2 is not implemented in this version.")
         elif choice == '3':
             process_feature_3()
         elif choice == '4':
