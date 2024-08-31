@@ -1,6 +1,7 @@
 import os
 import random
 import requests
+import time
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -84,7 +85,9 @@ def main():
         xpub = entry['xpub']
 
         print(f"Memeriksa saldo untuk alamat {address}...")
+
         details = fetch_address_details(address)
+        time.sleep(3)  # Sleep for 1 second
         balance = details['balance']
         if balance != 'Error' and balance > 0:
             print(f"Saldo untuk alamat {address} adalah {balance:.8f} BTC")
@@ -95,7 +98,7 @@ def main():
             print(f"Saldo untuk alamat {address} tidak ditemukan atau nol.")
         
         # Optional sleep to avoid hitting API limits
-        time.sleep(3)  # Sleep for 1 second
+        
 
 if __name__ == "__main__":
     main()
