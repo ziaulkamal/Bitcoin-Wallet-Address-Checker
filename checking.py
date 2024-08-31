@@ -95,7 +95,7 @@ def main():
             print(f"Saldo untuk alamat {address} tidak ditemukan atau nol.")
         
         # Optional sleep to avoid hitting API limits
-        # time.sleep(1)  # Sleep for 1 second
+        time.sleep(3)  # Sleep for 1 second
 
 if __name__ == "__main__":
     main()
