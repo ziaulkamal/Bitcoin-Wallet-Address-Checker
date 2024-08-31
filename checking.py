@@ -1,4 +1,5 @@
 import os
+import random
 import requests
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -36,9 +37,11 @@ def fetch_address_details(address):
 
 def get_next_unused_address():
     try:
-        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('created_at', 'asc').limit(1).execute()
-        if response.data:
-            return response.data[0]
+        # Ambil satu alamat secara acak dengan status 'use' = false
+        response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('id').limit(1).execute()
+        data = response.data
+        if data:
+            return data[0]  # Ambil alamat pertama dari hasil
     except Exception as e:
         print(f"Error saat mengambil alamat yang tidak digunakan: {e}")
     return None
