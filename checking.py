@@ -37,7 +37,7 @@ def fetch_address_details(address):
 
 def get_next_unused_address():
     try:
-        # Ambil satu alamat secara acak dengan status 'use' = false
+        # Ambil satu alamat dengan status 'use' = false
         response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('id').limit(1).execute()
         data = response.data
         if data:
@@ -87,12 +87,16 @@ def main():
         print(f"Memeriksa saldo untuk alamat {address}...")
 
         details = fetch_address_details(address)
-        time.sleep(1)  # Tidur selama 1 detik
         balance = details['balance']
+        
+        # Tandai alamat sebagai digunakan, terlepas dari hasilnya
+        mark_address_as_used(address)
+
+        time.sleep(1)  # Tidur selama 1 detik untuk menghindari batasan API
+        
         if balance != 'Error' and balance > 0:
             print(f"Saldo untuk alamat {address} adalah {balance:.8f} BTC")
             save_found_address(address, xprv, xpub, balance)
-            mark_address_as_used(address)
         else:
             print(f"Saldo untuk alamat {address} tidak ditemukan atau nol.")
         
