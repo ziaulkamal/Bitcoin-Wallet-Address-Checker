@@ -39,8 +39,6 @@ def get_next_unused_address():
     try:
         # Ambil satu alamat secara acak dengan status 'use' = false
         response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('id').limit(1).execute()
-        if response.error:
-            raise Exception(f"Error fetching unused address: {response.error}")
         data = response.data
         if data:
             return data[0]  # Ambil alamat pertama dari hasil
@@ -57,8 +55,8 @@ def save_found_address(address, xprv, xpub, balance):
             "balance": balance
         }
         response = supabase.table('found_address').insert(data).execute()
-        if response.error:
-            raise Exception(f"Error inserting data into found_address: {response.error}")
+        if response.status_code != 201:
+            raise Exception(f"Error inserting data into found_address: {response.status_code}")
         print(f"Alamat {address} berhasil disimpan ke found_address.")
     except Exception as e:
         print(f"Error saat menyimpan data: {e}")
@@ -66,8 +64,8 @@ def save_found_address(address, xprv, xpub, balance):
 def mark_address_as_used(address):
     try:
         response = supabase.table('chain_bip49').update({'use': True}).eq('address', address).execute()
-        if response.error:
-            raise Exception(f"Error updating address: {response.error}")
+        if response.status_code != 200:
+            raise Exception(f"Error updating address: {response.status_code}")
         print(f"Alamat {address} telah diperbarui sebagai digunakan.")
     except Exception as e:
         print(f"Error saat memperbarui status alamat: {e}")
