@@ -1,5 +1,4 @@
 import os
-import random
 import requests
 import time
 from supabase import create_client, Client
@@ -29,7 +28,7 @@ def fetch_address_details(address):
             'address': address,
             'balance': funded_txo_sum / 1e8  # Konversi dari satoshi ke BTC
         }
-    except Exception as e:
+    except requests.RequestException as e:
         print(f"Error fetching details for address {address}: {e}")
         return {
             'address': address,
@@ -40,6 +39,8 @@ def get_next_unused_address():
     try:
         # Ambil satu alamat secara acak dengan status 'use' = false
         response = supabase.table('chain_bip49').select('address', 'xprv', 'xpub').eq('use', False).order('id').limit(1).execute()
+        if response.error:
+            raise Exception(f"Error fetching unused address: {response.error}")
         data = response.data
         if data:
             return data[0]  # Ambil alamat pertama dari hasil
@@ -67,6 +68,7 @@ def mark_address_as_used(address):
         response = supabase.table('chain_bip49').update({'use': True}).eq('address', address).execute()
         if response.error:
             raise Exception(f"Error updating address: {response.error}")
+        print(f"Alamat {address} telah diperbarui sebagai digunakan.")
     except Exception as e:
         print(f"Error saat memperbarui status alamat: {e}")
 
@@ -87,18 +89,17 @@ def main():
         print(f"Memeriksa saldo untuk alamat {address}...")
 
         details = fetch_address_details(address)
-        time.sleep(3)  # Sleep for 1 second
+        time.sleep(1)  # Tidur selama 1 detik
         balance = details['balance']
         if balance != 'Error' and balance > 0:
             print(f"Saldo untuk alamat {address} adalah {balance:.8f} BTC")
             save_found_address(address, xprv, xpub, balance)
             mark_address_as_used(address)
-            print(f"Alamat {address} telah diperbarui sebagai digunakan.")
         else:
             print(f"Saldo untuk alamat {address} tidak ditemukan atau nol.")
         
         # Optional sleep to avoid hitting API limits
-        
+        time.sleep(1)  # Menghindari batas API, sesuaikan sesuai kebutuhan
 
 if __name__ == "__main__":
     main()
